@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Mini HTTP Server — C Project</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap');
+
+    :root {
+      --bg:      #0a0e17;
+      --surface: #111827;
+      --border:  #1e2d40;
+      --accent:  #00d9a3;
+      --accent2: #3b82f6;
+      --warn:    #f59e0b;
+      --red:     #ef4444;
+      --text:    #e2e8f0;
+      --muted:   #64748b;
+      --code-bg: #0d1117;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Syne', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Grid background ── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background-image:
+        linear-gradient(var(--border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 40px 40px;
+      opacity: 0.4;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 60px 24px 120px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ── Hero ── */
+    .hero {
+      text-align: center;
+      padding: 60px 0 48px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(0,217,163,0.1);
+      border: 1px solid rgba(0,217,163,0.3);
+      color: var(--accent);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      padding: 6px 14px;
+      border-radius: 20px;
+      letter-spacing: 0.1em;
+      margin-bottom: 24px;
+    }
+
+    .badge::before { content: '●'; font-size: 0.6em; animation: blink 1.4s infinite; }
+
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+    h1 {
+      font-size: clamp(2.2rem, 6vw, 3.8rem);
+      font-weight: 800;
+      line-height: 1.1;
+      letter-spacing: -0.03em;
+      background: linear-gradient(135deg, var(--text) 0%, var(--accent) 60%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 16px;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      font-size: 1.05rem;
+      max-width: 500px;
+      margin: 0 auto 40px;
+      line-height: 1.6;
+    }
+
+    .status-bar {
+      display: flex;
+      justify-content: center;
+      gap: 24px;
+      flex-wrap: wrap;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+    }
+
+    .stat {
+      display: flex; align-items: center; gap: 8px;
+      color: var(--muted);
+    }
+    .stat span { color: var(--text); font-weight: 700; }
+
+    /* ── Cards ── */
+    .section-title {
+      font-size: 0.7rem;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.15em;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin: 56px 0 20px;
+      display: flex; align-items: center; gap: 12px;
+    }
+    .section-title::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    .flow-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+    }
+
+    .flow-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+    .flow-card:hover {
+      border-color: var(--accent);
+      transform: translateY(-2px);
+    }
+    .flow-card::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--accent2), var(--accent));
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    .flow-card:hover::before { opacity: 1; }
+
+    .card-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--accent);
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+    .card-title {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .card-desc {
+      font-size: 0.85rem;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    /* ── Code blocks ── */
+    .code-block {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      margin: 16px 0;
+    }
+
+    .code-header {
+      display: flex; align-items: center;
+      justify-content: space-between;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(255,255,255,0.02);
+    }
+
+    .code-dots { display: flex; gap: 6px; }
+    .code-dots span {
+      width: 10px; height: 10px; border-radius: 50%;
+    }
+    .code-dots span:nth-child(1) { background: var(--red); }
+    .code-dots span:nth-child(2) { background: var(--warn); }
+    .code-dots span:nth-child(3) { background: var(--accent); }
+
+    .code-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--muted);
+    }
+
+    pre {
+      padding: 20px;
+      overflow-x: auto;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.82rem;
+      line-height: 1.7;
+      color: #a9b1d6;
+    }
+
+    .kw  { color: #bb9af7; }
+    .fn  { color: #7dcfff; }
+    .str { color: #9ece6a; }
+    .cmt { color: #565f89; font-style: italic; }
+    .num { color: #ff9e64; }
+    .op  { color: var(--accent); }
+
+    /* ── HTTP flow diagram ── */
+    .http-flow {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 28px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+    }
+
+    .flow-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      color: var(--muted);
+    }
+    .flow-row:last-child { border-bottom: none; }
+
+    .flow-actor {
+      min-width: 90px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      text-align: center;
+      font-size: 0.72rem;
+      font-weight: 700;
+    }
+    .actor-browser { background: rgba(59,130,246,0.2); color: var(--accent2); border: 1px solid rgba(59,130,246,0.3); }
+    .actor-server  { background: rgba(0,217,163,0.1);  color: var(--accent);  border: 1px solid rgba(0,217,163,0.2);  }
+    .actor-fs      { background: rgba(245,158,11,0.1); color: var(--warn);    border: 1px solid rgba(245,158,11,0.2); }
+
+    .flow-arrow { color: var(--border); font-size: 1rem; }
+    .flow-msg { color: var(--text); flex: 1; }
+
+    /* ── Test cases ── */
+    .test-list { display: flex; flex-direction: column; gap: 10px; }
+
+    .test-item {
+      display: flex; align-items: center;
+      gap: 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 18px;
+    }
+
+    .test-status {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 4px;
+      min-width: 48px;
+      text-align: center;
+    }
+    .s200 { background: rgba(0,217,163,0.15); color: var(--accent); border: 1px solid rgba(0,217,163,0.3); }
+    .s404 { background: rgba(239,68,68,0.12); color: var(--red);    border: 1px solid rgba(239,68,68,0.25); }
+
+    .test-url {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.82rem;
+      color: var(--text);
+      flex: 1;
+    }
+    .test-note { font-size: 0.78rem; color: var(--muted); }
+
+    /* ── Footer ── */
+    footer {
+      text-align: center;
+      padding: 48px 0 0;
+      color: var(--muted);
+      font-size: 0.8rem;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    footer span { color: var(--accent); }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <!-- ── Hero ── -->
+  <div class="hero">
+    <div class="badge">SERVER RUNNING</div>
+    <h1>Mini HTTP Server<br>in C</h1>
+    <p class="subtitle">
+      A TCP socket–based static file server built with raw C and Linux APIs.
+      If you can see this page, your server is working perfectly.
+    </p>
+    <div class="status-bar">
+      <div class="stat">Port <span>8080</span></div>
+      <div class="stat">Protocol <span>HTTP/1.0</span></div>
+      <div class="stat">Method <span>GET only</span></div>
+      <div class="stat">Model <span>Single-threaded</span></div>
+    </div>
+  </div>
+
+  <!-- ── How it works ── -->
+  <div class="section-title">How the server works</div>
+  <div class="flow-grid">
+    <div class="flow-card">
+      <div class="card-num">01 / SOCKET</div>
+      <div class="card-title">Create TCP Socket</div>
+      <div class="card-desc">socket(AF_INET, SOCK_STREAM, 0) creates a file descriptor. Like dialling a phone — you get a "line" before talking.</div>
+    </div>
+    <div class="flow-card">
+      <div class="card-num">02 / BIND</div>
+      <div class="card-title">Bind to Port 8080</div>
+      <div class="card-desc">bind() assigns the socket to a local IP + port. The server claims "I live at :8080" so the OS knows where to deliver packets.</div>
+    </div>
+    <div class="flow-card">
+      <div class="card-num">03 / LISTEN</div>
+      <div class="card-title">Start Listening</div>
+      <div class="card-desc">listen() switches the socket to passive mode. It watches for incoming connections but doesn't accept them yet.</div>
+    </div>
+    <div class="flow-card">
+      <div class="card-num">04 / ACCEPT</div>
+      <div class="card-title">Accept a Client</div>
+      <div class="card-desc">accept() BLOCKS until a browser connects. It returns a NEW socket just for that client; the original keeps listening.</div>
+    </div>
+    <div class="flow-card">
+      <div class="card-num">05 / PARSE</div>
+      <div class="card-title">Parse HTTP Request</div>
+      <div class="card-desc">recv() reads the raw text. sscanf() extracts the method (GET) and path (/index.html) from the first line.</div>
+    </div>
+    <div class="flow-card">
+      <div class="card-num">06 / RESPOND</div>
+      <div class="card-title">Send HTTP Response</div>
+      <div class="card-desc">We open the file, read it with fread(), build headers, then send() them followed by the file bytes. Done!</div>
+    </div>
+  </div>
+
+  <!-- ── Request / Response Flow ── -->
+  <div class="section-title">Request → Response flow</div>
+  <div class="http-flow">
+    <div class="flow-row">
+      <div class="flow-actor actor-browser">Browser</div>
+      <div class="flow-arrow">──►</div>
+      <div class="flow-actor actor-server">Server</div>
+      <div class="flow-msg" style="padding-left:12px"><span style="color:var(--accent2)">TCP connect</span> on port 8080</div>
+    </div>
+    <div class="flow-row">
+      <div class="flow-actor actor-browser">Browser</div>
+      <div class="flow-arrow">──►</div>
+      <div class="flow-actor actor-server">Server</div>
+      <div class="flow-msg" style="padding-left:12px"><span style="color:var(--accent2)">HTTP request:</span> GET /index.html HTTP/1.1</div>
+    </div>
+    <div class="flow-row">
+      <div class="flow-actor actor-server">Server</div>
+      <div class="flow-arrow">──►</div>
+      <div class="flow-actor actor-fs">Disk</div>
+      <div class="flow-msg" style="padding-left:12px">stat("index.html") — does it exist?</div>
+    </div>
+    <div class="flow-row">
+      <div class="flow-actor actor-fs">Disk</div>
+      <div class="flow-arrow">──►</div>
+      <div class="flow-actor actor-server">Server</div>
+      <div class="flow-msg" style="padding-left:12px">fread() → file bytes loaded into memory</div>
+    </div>
+    <div class="flow-row">
+      <div class="flow-actor actor-server">Server</div>
+      <div class="flow-arrow">──►</div>
+      <div class="flow-actor actor-browser">Browser</div>
+      <div class="flow-msg" style="padding-left:12px"><span style="color:var(--accent)">HTTP/1.0 200 OK</span> + headers + file bytes</div>
+    </div>
+    <div class="flow-row">
+      <div class="flow-actor actor-server">Server</div>
+      <div class="flow-msg" style="padding-left:12px; color: var(--muted)">close(client_fd) → back to accept() for next client</div>
+    </div>
+  </div>
+
+  <!-- ── Compile and run ── -->
+  <div class="section-title">Compile &amp; run</div>
+  <div class="code-block">
+    <div class="code-header">
+      <div class="code-dots"><span></span><span></span><span></span></div>
+      <div class="code-label">bash — terminal</div>
+    </div>
+<pre><span class="cmt"># 1. Compile</span>
+<span class="fn">gcc</span> <span class="op">-o</span> server http_server.c <span class="op">-Wall</span>
+
+<span class="cmt"># 2. Create some test files in the same folder</span>
+<span class="fn">echo</span> <span class="str">"Hello, plain text!"</span> > hello.txt
+
+<span class="cmt"># 3. Run the server</span>
+<span class="fn">./server</span>
+
+<span class="cmt"># 4. Open your browser and go to:</span>
+<span class="cmt">#    http://localhost:8080             ← serves index.html</span>
+<span class="cmt">#    http://localhost:8080/hello.txt   ← serves hello.txt</span>
+<span class="cmt">#    http://localhost:8080/ghost.html  ← triggers 404</span></pre>
+  </div>
+
+  <!-- ── Test cases ── -->
+  <div class="section-title">Test cases</div>
+  <div class="test-list">
+    <div class="test-item">
+      <div class="test-status s200">200</div>
+      <div class="test-url">http://localhost:8080/</div>
+      <div class="test-note">→ serves index.html</div>
+    </div>
+    <div class="test-item">
+      <div class="test-status s200">200</div>
+      <div class="test-url">http://localhost:8080/index.html</div>
+      <div class="test-note">→ serves this file</div>
+    </div>
+    <div class="test-item">
+      <div class="test-status s200">200</div>
+      <div class="test-url">http://localhost:8080/hello.txt</div>
+      <div class="test-note">→ serves hello.txt as text/plain</div>
+    </div>
+    <div class="test-item">
+      <div class="test-status s404">404</div>
+      <div class="test-url">http://localhost:8080/ghost.html</div>
+      <div class="test-note">→ file not found page</div>
+    </div>
+  </div>
+
+  <!-- ── Key concepts ── -->
+  <div class="section-title">Key concepts for your viva</div>
+  <div class="code-block">
+    <div class="code-header">
+      <div class="code-dots"><span></span><span></span><span></span></div>
+      <div class="code-label">viva cheat-sheet</div>
+    </div>
+<pre><span class="kw">socket()</span>  <span class="cmt">→ Create an endpoint for communication (returns fd)</span>
+<span class="kw">bind()</span>    <span class="cmt">→ Assign a local address (IP + port) to the socket</span>
+<span class="kw">listen()</span>  <span class="cmt">→ Mark socket as passive (ready to accept)</span>
+<span class="kw">accept()</span>  <span class="cmt">→ Block until a client connects; return client socket</span>
+<span class="kw">recv()</span>    <span class="cmt">→ Read data from a socket into a buffer</span>
+<span class="kw">send()</span>    <span class="cmt">→ Write data from a buffer into a socket</span>
+<span class="kw">close()</span>   <span class="cmt">→ Release the socket file descriptor</span>
+<span class="kw">fopen()</span>   <span class="cmt">→ Open a file; "rb" = read binary mode</span>
+<span class="kw">fread()</span>   <span class="cmt">→ Read N bytes from a FILE* into a buffer</span>
+<span class="kw">malloc()</span>  <span class="cmt">→ Allocate heap memory; always pair with free()</span>
+<span class="kw">htons()</span>   <span class="cmt">→ Host-to-Network Short: convert port to big-endian</span>
+<span class="kw">INADDR_ANY</span> <span class="cmt">→ Bind to all available network interfaces</span>
+<span class="kw">HTTP/1.0</span>  <span class="cmt">→ Stateless; connection closes after each response</span>
+<span class="kw">MIME type</span> <span class="cmt">→ Tells browser how to handle the response body</span></pre>
+  </div>
+
+  <footer>
+    Served by <span>mini_http_server.c</span> · written in C · TCP port 8080
+  </footer>
+
+</div>
+</body>
+</html>
