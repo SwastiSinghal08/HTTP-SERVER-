@@ -1,35 +1,73 @@
 # HTTP-SERVER-
 
-# Mini HTTP Server (Windows - C)
+# 🌐 Mini HTTP Server (Windows - C)
 
-![C](https://img.shields.io/badge/Language-C-blue.svg)
+![Language](https://img.shields.io/badge/Language-C-blue.svg)
 ![Platform](https://img.shields.io/badge/Platform-Windows-green.svg)
-![Winsock](https://img.shields.io/badge/Networking-Winsock2-orange.svg)
+![Networking](https://img.shields.io/badge/Networking-Winsock2-orange.svg)
 ![Status](https://img.shields.io/badge/Status-Active-success.svg)
+![Build](https://img.shields.io/badge/Build-Passing-brightgreen.svg)
 ![License](https://img.shields.io/badge/License-Educational-lightgrey.svg)
 
->  A lightweight HTTP server built in C using the Winsock API to demonstrate low-level network programming and how web servers work internally.
+---
 
+## 📌 Overview
 
-## Features
+This project is a **lightweight HTTP server implemented in C** using the **Windows Winsock API**.  
+It demonstrates how web servers work internally by handling raw socket connections, parsing HTTP requests, and serving static files.
 
- Handles HTTP GET requests  
- MIME type detection  
- Error handling (404, 400)  
- Lightweight & beginner-friendly  
- Runs on Windows using Winsock  
+💡 This project is ideal for understanding:
+- Socket Programming
+- HTTP Protocol Basics
+- Client-Server Architecture
+- Low-level Network Communication
 
-## Tech Stack
+---
 
-| Component  | Technology       |
-|------------|------------------|
-| Language   | C                |
-| Networking | Winsock2 API     |
-| Compiler   | GCC / MinGW      |
+## 🎯 Objectives
 
-## Installation & Setup
+- Understand how HTTP servers function internally  
+- Learn TCP socket programming in C  
+- Implement request parsing and response generation  
+- Build a foundation for advanced networking concepts (like HTTPS)
 
-###  Compile
+---
+
+## ✨ Features
+
+✅ Supports HTTP GET requests  
+✅ Serves static files (HTML, CSS, JS, Images)  
+✅ MIME type detection  
+✅ Handles errors (400 Bad Request, 404 Not Found)  
+✅ Lightweight and fast  
+✅ Beginner-friendly code structure  
+✅ Works on Windows using Winsock  
+
+---
+
+## 🛠️ Tech Stack
+
+| Category        | Technology           |
+|----------------|--------------------|
+| Language       | C                  |
+| Networking     | Winsock2 API       |
+| Protocol       | HTTP/1.0           |
+| Compiler       | GCC / MinGW        |
+| OS             | Windows            |
+
+---
+
+## ⚙️ Installation & Setup
+
+### 🔧 Prerequisites
+
+- GCC Compiler (MinGW recommended)
+- Windows OS
+- Basic knowledge of C programming
+
+---
+
+### 🧱 Compilation
 
 ```bash
 gcc -o server http_server_windows.c -lws2_32 -Wall
