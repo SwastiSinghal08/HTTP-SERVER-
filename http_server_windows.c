@@ -1,5 +1,5 @@
 /*
- * =============================================================================
+ 
  * http_server_windows.c — Mini HTTP Server (Windows Version)
  * =============================================================================
  *
@@ -16,7 +16,7 @@
  *   - recv()/send() work the same way
  *   - stat() still works (it's in <sys/stat.h> which MinGW has)
  *   - Everything else is identical
- * =============================================================================
+ 
  */
 
 /* ── Windows Socket Header (replaces all Linux socket headers) ───────────── */
