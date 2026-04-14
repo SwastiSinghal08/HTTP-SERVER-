@@ -1,6 +1,6 @@
 # HTTP-SERVER-
 
-# 🌐 Mini HTTP Server (Windows - C)
+#  Mini HTTP Server (Windows - C)
 
 ![Language](https://img.shields.io/badge/Language-C-blue.svg)
 ![Platform](https://img.shields.io/badge/Platform-Windows-green.svg)
@@ -11,12 +11,12 @@
 
 ---
 
-## 📌 Overview
+##  Overview
 
 This project is a **lightweight HTTP server implemented in C** using the **Windows Winsock API**.  
 It demonstrates how web servers work internally by handling raw socket connections, parsing HTTP requests, and serving static files.
 
-💡 This project is ideal for understanding:
+This project is ideal for understanding:
 - Socket Programming
 - HTTP Protocol Basics
 - Client-Server Architecture
@@ -24,7 +24,7 @@ It demonstrates how web servers work internally by handling raw socket connectio
 
 ---
 
-## 🎯 Objectives
+##  Objectives
 
 - Understand how HTTP servers function internally  
 - Learn TCP socket programming in C  
@@ -33,19 +33,19 @@ It demonstrates how web servers work internally by handling raw socket connectio
 
 ---
 
-## ✨ Features
+##  Features
 
-✅ Supports HTTP GET requests  
-✅ Serves static files (HTML, CSS, JS, Images)  
-✅ MIME type detection  
-✅ Handles errors (400 Bad Request, 404 Not Found)  
-✅ Lightweight and fast  
-✅ Beginner-friendly code structure  
-✅ Works on Windows using Winsock  
+Supports HTTP GET requests  
+Serves static files (HTML, CSS, JS, Images)  
+MIME type detection  
+Handles errors (400 Bad Request, 404 Not Found)  
+Lightweight and fast  
+Beginner-friendly code structure  
+Works on Windows using Winsock  
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 | Category        | Technology           |
 |----------------|--------------------|
@@ -57,9 +57,9 @@ It demonstrates how web servers work internally by handling raw socket connectio
 
 ---
 
-## ⚙️ Installation & Setup
+## Installation & Setup
 
-### 🔧 Prerequisites
+### Prerequisites
 
 - GCC Compiler (MinGW recommended)
 - Windows OS
@@ -67,7 +67,7 @@ It demonstrates how web servers work internally by handling raw socket connectio
 
 ---
 
-### 🧱 Compilation
+### Compilation
 
 ```bash
 gcc -o server http_server_windows.c -lws2_32 -Wall
