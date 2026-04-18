@@ -1,0 +1,26 @@
+===============================
+   HTTP SERVER TEST FILE
+===============================
+
+This file is being successfully served by a custom HTTP server implemented in C.
+
+
+
+Working Demonstration:
+-------------------------------
+When a client (web browser) sends an HTTP GET request,
+the server processes the request, identifies the requested file,
+and sends back the appropriate HTTP response along with file content.
+
+This file confirms that:
+✔ The server is running successfully
+✔ GET requests are handled correctly
+✔ Static files are being served properly
+✔ Client-server communication is working
+
+
+Status:
+-------------------------------
+SERVER WORKING SUCCESSFULLY 
+
+

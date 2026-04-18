@@ -1,10 +1,10 @@
 /*
  
  * http_server_windows.c — Mini HTTP Server (Windows Version)
- * Compile : gcc -o server http_server_windows.c -lws2_32 -Wall
- *           (the -lws2_32 flag links the Windows socket library)
- * Run     : server.exe
- * Test    : http://localhost:8080
+ * Compile : gcc http_server_windows.c -o http_server_windows.exe -lws2_32
+              (the -lws2_32 flag links the Windows socket lib)
+ * Run     : http_server_windows.exe
+ * Test    : http://localhost:8080 this opens our homepage running on port 8080
  */
 
 /*  Windows Socket Header (replaces all Linux socket headers)  */
@@ -63,13 +63,13 @@ const char *get_mime_type(const char *filename) {
 }
 
 /* 
- * parse_request_path — same as Linux version, no changes needed
+  parse_request_path — same as Linux version, no changes needed
 */
 int parse_request_path(const char *request, char *method, char *path) {
     //extracts the HTTP method (GET) and requested path (/index.html) from the request string.
     // EX. GET /index.html HTTP/1.1 so method → "GET" , path → "/index.html"
     if (sscanf(request, "%255s %255s", method, path) != 2) { 
-        return 0;
+        return 0; // invalid request format
     }
     if (strcmp(path, "/") == 0) {
         strcpy(path, "/index.html"); // "/" means homepage so serve index.html
@@ -77,23 +77,22 @@ int parse_request_path(const char *request, char *method, char *path) {
     return 1;
 }
 /* 
- * send_404 — same logic, but socket is SOCKET type (not int) on Windows
+ Sends a 404 Not Found response to the browser when file is missing.
   */
 void send_404(SOCKET client_fd, const char *path) {
     /*
      * SOCKET is a typedef in winsock2.h
      * On Linux we used int; on Windows we use SOCKET
-     * Everything else inside this function is identical
      */
-    char body[512];
+    char body[512]; // stores HTML response
     snprintf(body, sizeof(body),
-        "<html><head><title>404 Not Found</title></head>"
+        "<html><head><title>OOPS - 404 Not Found</title></head>"
         "<body style='font-family:monospace;padding:40px'>"
         "<h1>404 &mdash; Not Found</h1>"
         "<p>The file <code>%s</code> could not be found.</p>"
         "<hr><small>mini_http_server / C (Windows)</small>"
         "</body></html>",
-        path);
+        path); // In %S
 
     char response[1024];
     int  body_len = strlen(body);

@@ -57,17 +57,6 @@ Works on Windows using Winsock
 
 ---
 
-## Installation & Setup
 
-### Prerequisites
 
-- GCC Compiler (MinGW recommended)
-- Windows OS
-- Basic knowledge of C programming
 
----
-
-### Compilation
-
-```bash
-gcc -o server http_server_windows.c -lws2_32 -Wall
