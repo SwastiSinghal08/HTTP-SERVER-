@@ -1,52 +1,42 @@
 /*
  
  * http_server_windows.c — Mini HTTP Server (Windows Version)
- * =============================================================================
- *
  * Compile : gcc -o server http_server_windows.c -lws2_32 -Wall
  *           (the -lws2_32 flag links the Windows socket library)
- *
  * Run     : server.exe
  * Test    : http://localhost:8080
- *
- * CHANGES FROM LINUX VERSION:
- *   - Replaced sys/socket.h, netinet/in.h etc. with <winsock2.h>
- *   - Added WSAStartup() / WSACleanup() (Windows socket init/cleanup)
- *   - closesocket() instead of close()
- *   - recv()/send() work the same way
- *   - stat() still works (it's in <sys/stat.h> which MinGW has)
- *   - Everything else is identical
-  
  */
 
-/* ── Windows Socket Header (replaces all Linux socket headers) ───────────── */
-#include <winsock2.h>       /* socket, bind, listen, accept, send, recv, etc  */
-#include <ws2tcpip.h>       /* inet_ntoa, sockaddr_in, etc.                   */
+/*  Windows Socket Header (replaces all Linux socket headers)  */
+#include <winsock2.h>       /* socket, bind, listen, accept, send, recv functions required to
+                            implement TCP communication   */
+#include <ws2tcpip.h>       /* inet_ntoa, sockaddr_in to handle IP addresses.                   */
 
-/* ── Standard C Headers (same as before) ────────────────────────────────── */
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/stat.h>       /* stat() — MinGW on Windows supports this        */
-#include <errno.h>
+/* Standard C Headers */
+#include <stdio.h>  // input output function'
+#include <stdlib.h> // memory allocation(malloc(),exit())
+#include <string.h> // string operation
+#include <sys/stat.h> // Used to check file existence and its properties
+#include <errno.h>   // helps in error handling , store errors code
 
-/* ── Tell linker to include ws2_32.lib automatically ────────────────────── */
-#pragma comment(lib, "ws2_32.lib")  /* Works with MSVC; gcc uses -lws2_32 flag */
 
-/* ── Configuration ───────────────────────────────────────────────────────── */
-#define PORT          8080
-#define BACKLOG       10
-#define BUFFER_SIZE   4096
-#define MAX_PATH_LEN  256
-#define MAX_FILE_SIZE (1024 * 1024 * 10)
+#pragma comment(lib, "ws2_32.lib")  /* Tells compiler to link winsock library 
+                                     otherwise socket functions wont work */
 
-/* ── MIME Type Table ─────────────────────────────────────────────────────── */
-typedef struct {
+/* Configuration  */
+#define PORT          8080  // Server runs on this port
+#define BACKLOG       10    // max no of client waiting if server is busy
+#define BUFFER_SIZE   4096  //Size of buffer used to Read request,Send response(4KB enough for http request) 
+#define MAX_PATH_LEN  256 // Max length of file path (like /index.html)
+#define MAX_FILE_SIZE (1024 * 1024 * 10) // max file allowed in 10MB
+
+/* MIME Type Table for identifying the file type and assigning the correct MIME type. */
+typedef struct {              // structure storing file extension and mime type 
     const char *extension;
     const char *mime_type;
 } MimeEntry;
 
-static const MimeEntry MIME_TABLE[] = {
+static const MimeEntry MIME_TABLE[] = {      // This is array of structure assinging mime type to various extension
     { ".html", "text/html"               },
     { ".htm",  "text/html"               },
     { ".txt",  "text/plain"              },
@@ -58,37 +48,37 @@ static const MimeEntry MIME_TABLE[] = {
     { ".jpeg", "image/jpeg"              },
     { ".gif",  "image/gif"               },
     { ".ico",  "image/x-icon"            },
-    { NULL,    NULL                      }
+    { NULL,    NULL                      } // To mark end of MIME table
 };
 
-/* ═══════════════════════════════════════════════════════════════════════════
- * get_mime_type — same as Linux version, no changes needed
- * ═══════════════════════════════════════════════════════════════════════════ */
+/* Give File name return correct mime type
+*/
 const char *get_mime_type(const char *filename) {
-    for (int i = 0; MIME_TABLE[i].extension != NULL; i++) {
-        if (strstr(filename, MIME_TABLE[i].extension) != NULL) {
+    for (int i = 0; MIME_TABLE[i].extension != NULL; i++) { // iterates through mime table until NULL
+        if (strstr(filename, MIME_TABLE[i].extension) != NULL) { //search substring inside string
             return MIME_TABLE[i].mime_type;
         }
     }
-    return "application/octet-stream";
+    return "application/octet-stream"; //generic MIME type when no matching found
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
+/* 
  * parse_request_path — same as Linux version, no changes needed
- * ═══════════════════════════════════════════════════════════════════════════ */
+*/
 int parse_request_path(const char *request, char *method, char *path) {
-    if (sscanf(request, "%255s %255s", method, path) != 2) {
+    //extracts the HTTP method (GET) and requested path (/index.html) from the request string.
+    // EX. GET /index.html HTTP/1.1 so method → "GET" , path → "/index.html"
+    if (sscanf(request, "%255s %255s", method, path) != 2) { 
         return 0;
     }
     if (strcmp(path, "/") == 0) {
-        strcpy(path, "/index.html");
+        strcpy(path, "/index.html"); // "/" means homepage so serve index.html
     }
     return 1;
 }
-
-/* ═══════════════════════════════════════════════════════════════════════════
+/* 
  * send_404 — same logic, but socket is SOCKET type (not int) on Windows
- * ═══════════════════════════════════════════════════════════════════════════ */
+  */
 void send_404(SOCKET client_fd, const char *path) {
     /*
      * SOCKET is a typedef in winsock2.h
