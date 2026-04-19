@@ -93,7 +93,14 @@ void send_404(SOCKET client_fd, const char *path) {
         "<hr><small>mini_http_server / C (Windows)</small>"
         "</body></html>",
         path); // In %S
-
+     
+    /*
+    *This section builds and send a 404 Not Found HTTP response.
+    *Creates-response buffer-store html reply
+    *-Uses snprintf()-format HTTP response
+             Status line: HTTP/1.0 404 Not Found
+             content type,length
+    */
     char response[1024];
     int  body_len = strlen(body);
     snprintf(response, sizeof(response),
@@ -101,93 +108,116 @@ void send_404(SOCKET client_fd, const char *path) {
         "Content-Type: text/html\r\n"
         "Content-Length: %d\r\n"
         "Connection: close\r\n"
-        "\r\n"
+        "\r\n"                         //blank line to separate headers and body
         "%s",
         body_len, body);
 
-    send(client_fd, response, strlen(response), 0);
-    printf("  [Response] 404 Not Found - %s\n", path);
+    send(client_fd, response, strlen(response), 0);     //transmit the response to client via socket
+    printf("  [Response] 404 Not Found - %s\n", path);  // logs the 404 error on server console for debugging
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
  * send_400 — same, just SOCKET type instead of int
  * ═══════════════════════════════════════════════════════════════════════════ */
-void send_400(SOCKET client_fd) {
-    const char *response =
-        "HTTP/1.0 400 Bad Request\r\n"
-        "Content-Type: text/html\r\n"
+ 
+/*sends HTTP 400 Bad Request response with headers and simple HTML body
+ *send_400()-called when HTTP Request is invalid
+              GET /index.html HTTP/1.1   (correct form)
+*/
+
+void send_400(SOCKET client_fd) {                     //sends a 400 Bad request response to client
+    const char *response =                            //Directly defines HTTP response
+        "HTTP/1.0 400 Bad Request\r\n"                //Status line
+        "Content-Type: text/html\r\n"                 //HTML response
         "Connection: close\r\n"
         "\r\n"
-        "<html><body><h1>400 Bad Request</h1></body></html>";
+        "<html><body><h1>400 Bad Request</h1></body></html>";   //Simple error page
 
-    send(client_fd, response, strlen(response), 0);
-    printf("  [Response] 400 Bad Request\n");
+    send(client_fd, response, strlen(response), 0);         //sends response to client via socket
+    printf("  [Response] 400 Bad Request\n");               //logs output
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
- * serve_file — same logic; only SOCKET type and closesocket() differ
+ * serve_file — same logic; only SOCKET type and closesocket() differ+
  * ═══════════════════════════════════════════════════════════════════════════ */
+
+
+/* 
+    Sends requested file to browser
+    This section ensures only valid ,safe and existing files are processed
+     before sending them to the client 
+*/
+
 void serve_file(SOCKET client_fd, const char *path) {
-    const char *local_path = path + 1;   /* skip the leading '/' */
-    printf("  [File]     Serving: %s\n", local_path);
+    const char *local_path = path + 1;                    //removes leading '/' from the path to get actual file name
+    printf("  [File]     Serving: %s\n", local_path);     //prints the file serve
 
-    /* Check if file exists */
-    struct stat file_info;
-    if (stat(local_path, &file_info) != 0) {
+    /* Check if file exists
+       if not found-send 404 response and exit    
+    */
+    struct stat file_info;                                //stores file detail(size,existence)
+    if (stat(local_path, &file_info) != 0) {              //check if file exists
+        send_404(client_fd, path);                        //if not
+        return;
+    }
+
+    /* Open file in binary mode 
+       if file opening fails send 404 response
+    */
+    FILE *fp = fopen(local_path, "rb");                  //opens file in binary mode
+    if (fp == NULL) {                                    //if file cannot open
         send_404(client_fd, path);
         return;
     }
 
-    /* Open file in binary mode */
-    FILE *fp = fopen(local_path, "rb");
-    if (fp == NULL) {
+    long file_size = file_info.st_size;                  //get file size
+    
+    /* Check if file exceeds MAX_FILE_SIZE
+       if too large- close file and send 404
+    */
+    if (file_size > MAX_FILE_SIZE) {                     //prevents very large file(>10MB)
+        fclose(fp);                                      //file closes
         send_404(client_fd, path);
         return;
     }
 
-    long file_size = file_info.st_size;
-
-    if (file_size > MAX_FILE_SIZE) {
+    /* Allocate memory using malloc() to store file content
+       if allocation fails-closes file and send 404
+    */
+    char *file_buf = (char *)malloc(file_size);          //allocate memory to store file
+    if (file_buf == NULL) {                              //if memory allocation fail
         fclose(fp);
         send_404(client_fd, path);
         return;
     }
 
-    /* Read file into heap buffer */
-    char *file_buf = (char *)malloc(file_size);
-    if (file_buf == NULL) {
-        fclose(fp);
-        send_404(client_fd, path);
-        return;
-    }
+    size_t bytes_read = fread(file_buf, 1, file_size, fp);     //read file into buffer
+    fclose(fp);                                                //file closes
 
-    size_t bytes_read = fread(file_buf, 1, file_size, fp);
-    fclose(fp);
-
-    if ((long)bytes_read != file_size) {
+    if ((long)bytes_read != file_size) {                       //if reading fails-free memory+404
         free(file_buf);
         send_404(client_fd, path);
         return;
     }
 
     /* Build and send headers */
-    const char *mime = get_mime_type(local_path);
-    char headers[512];
-    int  header_len = snprintf(headers, sizeof(headers),
-        "HTTP/1.0 200 OK\r\n"
+    const char *mime = get_mime_type(local_path);            //finds file type(HTML, PNG, etc.)
+    char headers[512];                                       //stores HTTP header
+    int  header_len = snprintf(headers, sizeof(headers),     //creates reponse header
+        "HTTP/1.0 200 OK\r\n"                                //success response
         "Content-Type: %s\r\n"
         "Content-Length: %ld\r\n"
         "Connection: close\r\n"
         "\r\n",
         mime, file_size);
 
-    send(client_fd, headers, header_len, 0);
-    send(client_fd, file_buf, file_size, 0);
+    send(client_fd, headers, header_len, 0);                 //sends headers
+    send(client_fd, file_buf, file_size, 0);                 //sends file data
 
-    printf("  [Response] 200 OK - %s (%ld bytes, %s)\n",
+    printf("  [Response] 200 OK - %s (%ld bytes, %s)\n",     // logs success
            local_path, file_size, mime);
 
-    free(file_buf);
+    free(file_buf);                                         //free memory
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
