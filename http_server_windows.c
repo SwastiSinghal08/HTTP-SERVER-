@@ -1,5 +1,4 @@
 /*
- 
  * http_server_windows.c — Mini HTTP Server (Windows Version)
  * Compile : gcc http_server_windows.c -o http_server_windows.exe -lws2_32
               (the -lws2_32 flag links the Windows socket lib)
@@ -28,7 +27,7 @@
 #define BACKLOG       10    // max no of client waiting if server is busy
 #define BUFFER_SIZE   4096  //Size of buffer used to Read request,Send response(4KB enough for http request) 
 #define MAX_PATH_LEN  256 // Max length of file path (like /index.html)
-#define MAX_FILE_SIZE (1024 * 1024 * 10) // max file allowed in 10MB
+#define MAX_FILE_SIZE (1024 * 1024 * 10) // max file allowed is 10MB
 
 /* MIME Type Table for identifying the file type and assigning the correct MIME type. */
 typedef struct {              // structure storing file extension and mime type 
@@ -56,14 +55,14 @@ static const MimeEntry MIME_TABLE[] = {      // This is array of structure assin
 const char *get_mime_type(const char *filename) {
     for (int i = 0; MIME_TABLE[i].extension != NULL; i++) { // iterates through mime table until NULL
         if (strstr(filename, MIME_TABLE[i].extension) != NULL) { //search substring inside string
-            return MIME_TABLE[i].mime_type;
+            return MIME_TABLE[i].mime_type; //returns a matching MIME type
         }
     }
     return "application/octet-stream"; //generic MIME type when no matching found
 }
 
 /* 
-  parse_request_path — same as Linux version, no changes needed
+  parse_request_path() — same as Linux version, no changes needed
 */
 int parse_request_path(const char *request, char *method, char *path) {
     //extracts the HTTP method (GET) and requested path (/index.html) from the request string.
@@ -94,8 +93,8 @@ void send_404(SOCKET client_fd, const char *path) {
         "</body></html>",
         path); // In %S
 
-    char response[1024];
-    int  body_len = strlen(body);
+    char response[1024]; //full http response
+    int  body_len = strlen(body); // length of our html content
     snprintf(response, sizeof(response),
         "HTTP/1.0 404 Not Found\r\n"
         "Content-Type: text/html\r\n"
@@ -103,15 +102,14 @@ void send_404(SOCKET client_fd, const char *path) {
         "Connection: close\r\n"
         "\r\n"
         "%s",
-        body_len, body);
+        body_len, body); // it builds http reponse such as status line, headers, body
 
-    send(client_fd, response, strlen(response), 0);
+    send(client_fd, response, strlen(response), 0); // sends response to the browser
     printf("  [Response] 404 Not Found - %s\n", path);
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
- * send_400 — same, just SOCKET type instead of int
- * ═══════════════════════════════════════════════════════════════════════════ */
+// send_400 — same, just SOCKET type instead of int
+ 
 void send_400(SOCKET client_fd) {
     const char *response =
         "HTTP/1.0 400 Bad Request\r\n"
@@ -124,28 +122,27 @@ void send_400(SOCKET client_fd) {
     printf("  [Response] 400 Bad Request\n");
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
- * serve_file — same logic; only SOCKET type and closesocket() differ
- * ═══════════════════════════════════════════════════════════════════════════ */
+//serve_file — same logic; only SOCKET type and closesocket() differ
+ 
 void serve_file(SOCKET client_fd, const char *path) {
-    const char *local_path = path + 1;   /* skip the leading '/' */
+    const char *local_path = path + 1; /* skip the leading '/', i.e /index.html → index.html */
     printf("  [File]     Serving: %s\n", local_path);
 
     /* Check if file exists */
-    struct stat file_info;
-    if (stat(local_path, &file_info) != 0) {
+    struct stat file_info; // structure to store file info
+    if (stat(local_path, &file_info) != 0) { // to check if file exists
         send_404(client_fd, path);
         return;
     }
 
-    /* Open file in binary mode */
+    /* Opens file in binary mode */
     FILE *fp = fopen(local_path, "rb");
     if (fp == NULL) {
         send_404(client_fd, path);
         return;
     }
 
-    long file_size = file_info.st_size;
+    long file_size = file_info.st_size; // knowing file size
 
     if (file_size > MAX_FILE_SIZE) {
         fclose(fp);
@@ -154,14 +151,14 @@ void serve_file(SOCKET client_fd, const char *path) {
     }
 
     /* Read file into heap buffer */
-    char *file_buf = (char *)malloc(file_size);
+    char *file_buf = (char *)malloc(file_size); //allocates memory
     if (file_buf == NULL) {
         fclose(fp);
         send_404(client_fd, path);
         return;
     }
 
-    size_t bytes_read = fread(file_buf, 1, file_size, fp);
+    size_t bytes_read = fread(file_buf, 1, file_size, fp); //reading file into memory
     fclose(fp);
 
     if ((long)bytes_read != file_size) {
@@ -171,9 +168,9 @@ void serve_file(SOCKET client_fd, const char *path) {
     }
 
     /* Build and send headers */
-    const char *mime = get_mime_type(local_path);
+    const char *mime = get_mime_type(local_path); //get correct MIME type
     char headers[512];
-    int  header_len = snprintf(headers, sizeof(headers),
+    int  header_len = snprintf(headers, sizeof(headers), // builds HTTP headers
         "HTTP/1.0 200 OK\r\n"
         "Content-Type: %s\r\n"
         "Content-Length: %ld\r\n"
@@ -181,19 +178,18 @@ void serve_file(SOCKET client_fd, const char *path) {
         "\r\n",
         mime, file_size);
 
-    send(client_fd, headers, header_len, 0);
+    send(client_fd, headers, header_len, 0); //sends headers and fie content to browser
     send(client_fd, file_buf, file_size, 0);
 
     printf("  [Response] 200 OK - %s (%ld bytes, %s)\n",
            local_path, file_size, mime);
 
-    free(file_buf);
+    free(file_buf); //frees memory after sending
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
- * handle_client — SOCKET type; closesocket() instead of close()
- * ═══════════════════════════════════════════════════════════════════════════ */
-void handle_client(SOCKET client_fd, struct sockaddr_in client_addr) {
+ //handle_client — SOCKET type; closesocket() instead of close()
+ 
+void handle_client(SOCKET client_fd, struct sockaddr_in client_addr) { //handles one client at a time
     char request_buf[BUFFER_SIZE];
 
     printf("\n[Connection] %s:%d\n",
@@ -202,56 +198,55 @@ void handle_client(SOCKET client_fd, struct sockaddr_in client_addr) {
 
     memset(request_buf, 0, sizeof(request_buf));
     int bytes_received = recv(client_fd, request_buf,
-                              sizeof(request_buf) - 1, 0);
+                              sizeof(request_buf) - 1, 0); //receive's client request
 
     if (bytes_received <= 0) {
-        closesocket(client_fd);   /* ← Windows uses closesocket(), not close() */
+        closesocket(client_fd);   // Windows uses closesocket(), not close() 
         return;
     }
 
-    request_buf[bytes_received] = '\0';
+    request_buf[bytes_received] = '\0'; // converts into string
 
     char first_line[256] = {0};
-    sscanf(request_buf, "%255[^\r\n]", first_line);
+    sscanf(request_buf, "%255[^\r\n]", first_line); //extracts first line of request
     printf("  [Request]  %s\n", first_line);
 
     char method[16]         = {0};
     char path[MAX_PATH_LEN] = {0};
 
-    if (!parse_request_path(request_buf, method, path)) {
+    if (!parse_request_path(request_buf, method, path)) { //extract method + path
         send_400(client_fd);
         closesocket(client_fd);
         return;
     }
 
-    if (strcmp(method, "GET") != 0) {
+    if (strcmp(method, "GET") != 0) { // server only allows GET method
         printf("  [Ignored]  Method not supported: %s\n", method);
         send_400(client_fd);
         closesocket(client_fd);
         return;
     }
 
-    serve_file(client_fd, path);
+    serve_file(client_fd, path); //serves the required file to the client
 
-    closesocket(client_fd);   /* ← closesocket() instead of close() */
+    closesocket(client_fd);   // closesocket() instead of close() 
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
- * main — adds WSAStartup (Windows socket init) and WSACleanup at the end
- * ═══════════════════════════════════════════════════════════════════════════ */
+ // MAIN FUNCTION — adds WSAStartup (Windows socket init) and WSACleanup at the end
+ 
 int main(void) {
 
     printf("========================================\n");
     printf("   mini_http_server  (Windows / Winsock)\n");
     printf("========================================\n\n");
 
-    /* ── WINDOWS ONLY: Initialize Winsock ────────────────────────────────
+    /* WINDOWS ONLY: Initialize Winsock 
      * On Linux, sockets are ready immediately.
      * On Windows, you MUST call WSAStartup() first or nothing works.
      *
      * WSADATA  = a struct that Windows fills with socket library info
      * MAKEWORD(2,2) = request Winsock version 2.2 (the standard modern version)
-     * ─────────────────────────────────────────────────────────────────── */
+     */
     WSADATA wsa_data;
     int wsa_result = WSAStartup(MAKEWORD(2, 2), &wsa_data);
     if (wsa_result != 0) {
@@ -260,11 +255,11 @@ int main(void) {
     }
     printf("[Setup] Winsock initialized\n");
 
-    /* ── Create TCP socket ───────────────────────────────────────────────
+    /* Create TCP socket 
      * Same as Linux: AF_INET = IPv4, SOCK_STREAM = TCP
      * On Windows, socket() returns type SOCKET (not int)
      * INVALID_SOCKET is the Windows equivalent of Linux's -1
-     * ─────────────────────────────────────────────────────────────────── */
+    */
     SOCKET server_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (server_fd == INVALID_SOCKET) {
         fprintf(stderr, "[Error] socket() failed: %d\n", WSAGetLastError());
@@ -273,7 +268,7 @@ int main(void) {
     }
     printf("[Setup] Socket created\n");
 
-    /* ── SO_REUSEADDR — same as Linux ───────────────────────────────────── */
+    /*SO_REUSEADDR — same as Linux */
     int opt = 1;
     setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR,
                (const char *)&opt, sizeof(opt));
@@ -282,7 +277,7 @@ int main(void) {
      * The cast (const char *)&opt handles this difference
      */
 
-    /* ── Bind to port ───────────────────────────────────────────────────── */
+    /*Bind to port */
     struct sockaddr_in server_addr;
     memset(&server_addr, 0, sizeof(server_addr));
     server_addr.sin_family      = AF_INET;
@@ -298,7 +293,7 @@ int main(void) {
     }
     printf("[Setup] Bound to port %d\n", PORT);
 
-    /* ── Listen ─────────────────────────────────────────────────────────── */
+    //Listen
     if (listen(server_fd, BACKLOG) == SOCKET_ERROR) {
         fprintf(stderr, "[Error] listen() failed: %d\n", WSAGetLastError());
         closesocket(server_fd);
@@ -312,7 +307,7 @@ int main(void) {
     printf("[Ready] Press Ctrl+C to stop\n");
     printf("------------------------------------------\n");
 
-    /* ── Accept loop — identical logic to Linux version ─────────────────── */
+    //Accept loop — identical logic to Linux version 
     while (1) {
         struct sockaddr_in client_addr;
         int addr_len = sizeof(client_addr);
@@ -329,8 +324,8 @@ int main(void) {
         handle_client(client_fd, client_addr);
     }
 
-    /* Cleanup (reached only if loop somehow breaks) */
+    // Cleanup (reached only if loop somehow breaks) 
     closesocket(server_fd);
-    WSACleanup();   /* ← Windows ONLY: release Winsock resources */
+    WSACleanup();   // Windows ONLY: release Winsock resources 
     return 0;
 }
