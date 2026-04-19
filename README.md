@@ -47,7 +47,7 @@ Works on Windows using Winsock
 
 ## Tech Stack
 
-| Category        | Technology           |
+| Category       | Technology         |
 |----------------|--------------------|
 | Language       | C                  |
 | Networking     | Winsock2 API       |

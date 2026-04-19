@@ -138,7 +138,7 @@ void send_400(SOCKET client_fd) {                     //sends a 400 Bad request 
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
- * serve_file — same logic; only SOCKET type and closesocket() differ+
+ * serve_file — same logic; only SOCKET type and closesocket() differ
  * ═══════════════════════════════════════════════════════════════════════════ */
 
 
@@ -212,12 +212,12 @@ void serve_file(SOCKET client_fd, const char *path) {
         mime, file_size);
 
     send(client_fd, headers, header_len, 0);                 //sends headers
-    send(client_fd, file_buf, file_size, 0);                 //sends file data
+    send(client_fd, file_buf, file_size, 0);                 //sends file
 
-    printf("  [Response] 200 OK - %s (%ld bytes, %s)\n",     // logs success
+    printf("  [Response] 200 OK - %s (%ld bytes, %s)\n",
            local_path, file_size, mime);
 
-    free(file_buf);                                         //free memory
+    free(file_buf);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
