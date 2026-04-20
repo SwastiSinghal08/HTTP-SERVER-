@@ -220,147 +220,158 @@ void serve_file(SOCKET client_fd, const char *path) {
     free(file_buf);
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
- * handle_client — SOCKET type; closesocket() instead of close()
- * ═══════════════════════════════════════════════════════════════════════════ */
+/*
+           *this function receive the HTTP request fro the client, extracts the method and path, valiadate 
+           the request, and if valaid serves the requested file.
+           *client_fd --> socket used to communicate with client, tell from which connection data should be received
+           *client_addr --> stores client IP addr and port
+           *memset()--> function used to fill a block of memory with a specific value(0 here)
+           *method = 'GET'
+           *path = '/index.html'   in (GET /index.html HTTP/1.1)
+*/
 void handle_client(SOCKET client_fd, struct sockaddr_in client_addr) {
-    char request_buf[BUFFER_SIZE];
+    char request_buf[BUFFER_SIZE];                         //create buffer to store HTTP request
 
-    printf("\n[Connection] %s:%d\n",
-           inet_ntoa(client_addr.sin_addr),
-           ntohs(client_addr.sin_port));
+    printf("\n[Connection] %s:%d\n",                       //print client IP and port
+           inet_ntoa(client_addr.sin_addr),                //converts IP to readable format
+           ntohs(client_addr.sin_port));                   //converts port number 
 
-    memset(request_buf, 0, sizeof(request_buf));
-    int bytes_received = recv(client_fd, request_buf,
-                              sizeof(request_buf) - 1, 0);
+    memset(request_buf, 0, sizeof(request_buf));               //fills buffer with 0 and remove garbage values
+    int bytes_received = recv(client_fd, request_buf,          //receive HTTP request from client and stores it in buffer 
+                              sizeof(request_buf) - 1, 0);     //-1 leaves space for null character
 
-    if (bytes_received <= 0) {
-        closesocket(client_fd);   /* ← Windows uses closesocket(), not close() */
+    if (bytes_received <= 0) {                                 //check if request failed or empty
+        closesocket(client_fd);                                //connection closes
         return;
     }
 
-    request_buf[bytes_received] = '\0';
+    request_buf[bytes_received] = '\0';                       //converts buffer into proper string
 
-    char first_line[256] = {0};
-    sscanf(request_buf, "%255[^\r\n]", first_line);
-    printf("  [Request]  %s\n", first_line);
+    char first_line[256] = {0};                               //buffer for the first line
+    sscanf(request_buf, "%255[^\r\n]", first_line);           //extract first line until newline
+    printf("  [Request]  %s\n", first_line);                  //printf request line
 
-    char method[16]         = {0};
-    char path[MAX_PATH_LEN] = {0};
+    char method[16]         = {0};                            //for method
+    char path[MAX_PATH_LEN] = {0};                            //for file path
 
-    if (!parse_request_path(request_buf, method, path)) {
-        send_400(client_fd);
+    if (!parse_request_path(request_buf, method, path)) {      //extracts method and path
+        send_400(client_fd);                                   
         closesocket(client_fd);
         return;
     }
 
-    if (strcmp(method, "GET") != 0) {
-        printf("  [Ignored]  Method not supported: %s\n", method);
-        send_400(client_fd);
+    if (strcmp(method, "GET") != 0) {                                   //compare method with GET
+        printf("  [Ignored]  Method not supported: %s\n", method);      //logs unsupported method
+        send_400(client_fd);                                            //sends error and exit
         closesocket(client_fd);
         return;
     }
 
-    serve_file(client_fd, path);
+    serve_file(client_fd, path);                     //calls function to send requested file
 
-    closesocket(client_fd);   /* ← closesocket() instead of close() */
+    closesocket(client_fd);                          //closes client socket
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
- * main — adds WSAStartup (Windows socket init) and WSACleanup at the end
- * ═══════════════════════════════════════════════════════════════════════════ */
+
+
+/*  
+              *MAKEWORD(2,2) --> version 2.2
+
+*/
+
 int main(void) {
 
-    printf("========================================\n");
+    printf("========================================\n");          //displays server title just for clarity
     printf("   mini_http_server  (Windows / Winsock)\n");
     printf("========================================\n\n");
 
-    /* ── WINDOWS ONLY: Initialize Winsock ────────────────────────────────
-     * On Linux, sockets are ready immediately.
-     * On Windows, you MUST call WSAStartup() first or nothing works.
-     *
-     * WSADATA  = a struct that Windows fills with socket library info
-     * MAKEWORD(2,2) = request Winsock version 2.2 (the standard modern version)
-     * ─────────────────────────────────────────────────────────────────── */
-    WSADATA wsa_data;
-    int wsa_result = WSAStartup(MAKEWORD(2, 2), &wsa_data);
-    if (wsa_result != 0) {
+    
+    WSADATA wsa_data;                                             //structure to store socket lib info
+    int wsa_result = WSAStartup(MAKEWORD(2, 2), &wsa_data);       //starts windows socket system
+    if (wsa_result != 0) {                                        //checks if initialization failed
         fprintf(stderr, "[Error] WSAStartup failed: %d\n", wsa_result);
         return 1;
     }
     printf("[Setup] Winsock initialized\n");
 
-    /* ── Create TCP socket ───────────────────────────────────────────────
-     * Same as Linux: AF_INET = IPv4, SOCK_STREAM = TCP
-     * On Windows, socket() returns type SOCKET (not int)
-     * INVALID_SOCKET is the Windows equivalent of Linux's -1
-     * ─────────────────────────────────────────────────────────────────── */
+   
+    /*           Sets server address, binds socket to port, and start listening for clients
+                 create TCP socket
+                 AF_INET --> IPv4
+                 SOCK_STREAM --> TCP
+    */
     SOCKET server_fd = socket(AF_INET, SOCK_STREAM, 0);
-    if (server_fd == INVALID_SOCKET) {
+    if (server_fd == INVALID_SOCKET) {                                 //check if socket creation failed
         fprintf(stderr, "[Error] socket() failed: %d\n", WSAGetLastError());
-        WSACleanup();
+        WSACleanup();                                                  //cleans resources
         return 1;
     }
-    printf("[Setup] Socket created\n");
+    printf("[Setup] Socket created\n");                         //confirms socket created
 
-    /* ── SO_REUSEADDR — same as Linux ───────────────────────────────────── */
-    int opt = 1;
-    setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR,
+    
+    int opt = 1;                                
+    setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR,         //allow reuse of port avoids 'address already in use' error
                (const char *)&opt, sizeof(opt));
-    /*
-     * Note: On Windows, setsockopt takes (const char*) not (void*)
-     * The cast (const char *)&opt handles this difference
-     */
+    
+    struct sockaddr_in server_addr;                        //structure to store server IP and port
+    memset(&server_addr, 0, sizeof(server_addr));          //removes garbage values
+    server_addr.sin_family      = AF_INET;                  // sets adress family specifically IPv4 protocol
+    server_addr.sin_addr.s_addr = INADDR_ANY;              //accepts connection from any IP address
+    server_addr.sin_port        = htons(PORT);             //set port 8080 , htons() converts to network format
 
-    /* ── Bind to port ───────────────────────────────────────────────────── */
-    struct sockaddr_in server_addr;
-    memset(&server_addr, 0, sizeof(server_addr));
-    server_addr.sin_family      = AF_INET;
-    server_addr.sin_addr.s_addr = INADDR_ANY;
-    server_addr.sin_port        = htons(PORT);
-
-    if (bind(server_fd, (struct sockaddr *)&server_addr,
+    if (bind(server_fd, (struct sockaddr *)&server_addr,        //link socket with IP+port 
              sizeof(server_addr)) == SOCKET_ERROR) {
         fprintf(stderr, "[Error] bind() failed: %d\n", WSAGetLastError());
         closesocket(server_fd);
         WSACleanup();
         return 1;
     }
-    printf("[Setup] Bound to port %d\n", PORT);
+    printf("[Setup] Bound to port %d\n", PORT);           //confirms successful binding
 
-    /* ── Listen ─────────────────────────────────────────────────────────── */
+    
+
+    /*
+                 *starts listening for clients
+                *BACKLOG --> max waiting client
+    */
     if (listen(server_fd, BACKLOG) == SOCKET_ERROR) {
         fprintf(stderr, "[Error] listen() failed: %d\n", WSAGetLastError());
         closesocket(server_fd);
         WSACleanup();
         return 1;
     }
-    printf("[Setup] Listening...\n");
+    printf("[Setup] Listening...\n");          //Indicates server has started litening
 
-    printf("\n[Ready] http://localhost:%d\n", PORT);
+    printf("\n[Ready] http://localhost:%d\n", PORT);               //shows url to open in browser
     printf("[Ready] Serving files from current directory\n");
     printf("[Ready] Press Ctrl+C to stop\n");
     printf("------------------------------------------\n");
 
-    /* ── Accept loop — identical logic to Linux version ─────────────────── */
+    /*
+             *This part continuously accepts client connection using an infinite loop.
+             *For each client, it creates a new socket, process the request using handle_client, and 
+              keeps the server running for multiple client 
+    */
     while (1) {
-        struct sockaddr_in client_addr;
-        int addr_len = sizeof(client_addr);
+        struct sockaddr_in client_addr;               //stores client IP and port
+        int addr_len = sizeof(client_addr);           //size of address structure
 
         SOCKET client_fd = accept(server_fd,
                                   (struct sockaddr *)&client_addr,
-                                  &addr_len);
+                                  &addr_len);         //waits for client request, accept connection, create new socket for the client
 
-        if (client_fd == INVALID_SOCKET) {
+
+
+        if (client_fd == INVALID_SOCKET) {            //check if accept failed
             fprintf(stderr, "accept() failed: %d\n", WSAGetLastError());
             continue;
         }
 
-        handle_client(client_fd, client_addr);
+        handle_client(client_fd, client_addr);           //calls function to read request, process it, send response
     }
 
-    /* Cleanup (reached only if loop somehow breaks) */
-    closesocket(server_fd);
-    WSACleanup();   /* ← Windows ONLY: release Winsock resources */
+    
+    closesocket(server_fd);                           //closes server socket
+    WSACleanup();                                     //releases winsock resources
     return 0;
 }
