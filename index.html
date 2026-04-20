@@ -403,15 +403,12 @@
 <pre><span class="cmt"># 1. Compile</span>
 <span class="fn">gcc</span> <span class="op">-o</span> server http_server_windows.c <span class="op">-Wall</span>
 
-<span class="cmt"># 2. Create some test files in the same folder</span>
-<span class="fn">echo</span> <span class="str">"Hello, plain text!"</span> > hello.txt
+<span class="cmt"># 2. Run the server</span>
+<span class="fn">server.exe</span>
 
-<span class="cmt"># 3. Run the server</span>
-<span class="fn">./server</span>
-
-<span class="cmt"># 4. Open your browser and go to:</span>
+<span class="cmt"># 3. Open your browser and go to:</span>
 <span class="cmt">#    http://localhost:8080             ← serves index.html</span>
-<span class="cmt">#    http://localhost:8080/hello.txt   ← serves hello.txt</span>
+<span class="cmt">#    http://localhost:8080/Test.txt   ← serves Test.txt</span>
 <span class="cmt">#    http://localhost:8080/ghost.html  ← triggers 404</span></pre>
   </div>
 
@@ -430,8 +427,8 @@
     </div>
     <div class="test-item">
       <div class="test-status s200">200</div>
-      <div class="test-url">http://localhost:8080/hello.txt</div>
-      <div class="test-note">→ serves hello.txt as text/plain</div>
+      <div class="test-url">http://localhost:8080/Test.txt</div>
+      <div class="test-note">→ serves Test.txt as text/plain</div>
     </div>
     <div class="test-item">
       <div class="test-status s404">404</div>
@@ -441,11 +438,11 @@
   </div>
 
   <!-- ── Key concepts ── -->
-  <div class="section-title">Key concepts for your viva</div>
+  <div class="section-title">Key concepts</div>
   <div class="code-block">
     <div class="code-header">
       <div class="code-dots"><span></span><span></span><span></span></div>
-      <div class="code-label">viva cheat-sheet</div>
+      <div class="code-label">IMP FUNCTIONS</div>
     </div>
 <pre><span class="kw">socket()</span>  <span class="cmt">→ Create an endpoint for communication (returns fd)</span>
 <span class="kw">bind()</span>    <span class="cmt">→ Assign a local address (IP + port) to the socket</span>

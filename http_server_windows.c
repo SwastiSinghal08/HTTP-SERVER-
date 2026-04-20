@@ -1,12 +1,11 @@
 /*
  
-v * http_server_windows.c — Mini HTTP Server (Windows Version)
+* http_server_windows.c — Mini HTTP Server (Windows Version)
  * Compile : gcc http_server_windows.c -o http_server_windows.exe -lws2_32
  * Run     : http_server_windows.exe
  * Test    : http://localhost:8080 this opens our homepage running on port 8080
  */
 
-/*  Windows Socket Header (replaces all Linux socket headers)  */
 #include <winsock2.h>       /* socket, bind, listen, accept, send, recv functions required to
                             implement TCP communication   */
 #include <ws2tcpip.h>       /* inet_ntoa, sockaddr_in to handle IP addresses.                   */
@@ -35,7 +34,7 @@ typedef struct {              // structure storing file extension and mime type
     const char *mime_type;
 } MimeEntry;
 
-static const MimeEntry MIME_TABLE[] = {      // This is array of structure assinging mime type to various extension
+static const MimeEntry MIME_TABLE[] = { // This is array of structure assinging mime type to various extension
     { ".html", "text/html"               },
     { ".htm",  "text/html"               },
     { ".txt",  "text/plain"              },
@@ -76,13 +75,12 @@ int parse_request_path(const char *request, char *method, char *path) {
     return 1;
 }
 /* 
- Sends a 404 Not Found response to the browser when file is missing.
-  *Creates-response buffer-store html reply
+Sends a 404 Not Found response to the browser when file is missing.
+Creates-response buffer-store html reply
   */
 void send_404(SOCKET client_fd, const char *path) {
     /*
-     * SOCKET is a typedef in winsock2.h
-     
+      SOCKET is a typedef in winsock2.h
      */
     char body[512]; // stores HTML response
     snprintf(body, sizeof(body),
@@ -109,16 +107,12 @@ void send_404(SOCKET client_fd, const char *path) {
     printf("  [Response] 404 Not Found - %s\n", path);  // logs the 404 error on server console for debugging
 }
 
-/*
-  send_400 — same, just SOCKET type instead of int
-   */
- 
 /*sends HTTP 400 Bad Request response with headers and simple HTML body
- *send_400()-called when HTTP Request is invalid
-              GET /index.html HTTP/1.1   (correct form)
+ send_400()-called when HTTP Request is invalid
+ GET /index.html HTTP/1.1   (correct form)
 */
 
-void send_400(SOCKET client_fd) {                     //sends a 400 Bad request response to client
+void send_400(SOCKET client_fd) {                     
     const char *response =                            //Directly defines HTTP response
         "HTTP/1.0 400 Bad Request\r\n"                //Status line
         "Content-Type: text/html\r\n"                 //HTML response
@@ -134,7 +128,6 @@ void send_400(SOCKET client_fd) {                     //sends a 400 Bad request 
     This section ensures only valid ,safe and existing files are processed
      before sending them to the client 
 */
-
 void serve_file(SOCKET client_fd, const char *path) {
     const char *local_path = path + 1;                    //removes leading '/' from the path to get actual file name
     printf("  [File]     Serving: %s\n", local_path);     //prints the file serve
@@ -186,20 +179,20 @@ void serve_file(SOCKET client_fd, const char *path) {
     send(client_fd, headers, header_len, 0);                 //sends headers
     send(client_fd, file_buf, file_size, 0);                 //sends file
 
-    printf("  [Response] 200 OK - %s (%ld bytes, %s)\n",
+    printf("  [Response]  OK - %s (%ld bytes, %s)\n",
            local_path, file_size, mime);
 
     free(file_buf);
 }
 
 /*
-           *this function receive the HTTP request fro the client, extracts the method and path, valiadate 
-           the request, and if valaid serves the requested file.
-           *client_fd --> socket used to communicate with client, tell from which connection data should be received
-           *client_addr --> stores client IP addr and port
-           *memset()--> function used to fill a block of memory with a specific value(0 here)
-           *method = 'GET'
-           *path = '/index.html'   in (GET /index.html HTTP/1.1)
+*this function receive the HTTP request fro the client, extracts the method and path, valiadate 
+the request, and if valaid serves the requested file.
+*client_fd --> socket used to communicate with client, tell from which connection data should be received
+*client_addr --> stores client IP addr and port
+*memset()--> function used to fill a block of memory with a specific value(0 here)
+*method = 'GET'
+*path = '/index.html'   in (GET /index.html HTTP/1.1)
 */
 void handle_client(SOCKET client_fd, struct sockaddr_in client_addr) {
     char request_buf[BUFFER_SIZE];                         //create buffer to store HTTP request
@@ -245,16 +238,10 @@ void handle_client(SOCKET client_fd, struct sockaddr_in client_addr) {
 }
 
 
-
-/*  
-              *MAKEWORD(2,2) --> version 2.2
-
-*/
-
 int main(void) {
 
     printf("========================================\n");          //displays server title just for clarity
-    printf("   mini_http_server  (Windows / Winsock)\n");
+    printf("           Mini_HTTP_Server  \n");
     printf("========================================\n\n");
 
     
