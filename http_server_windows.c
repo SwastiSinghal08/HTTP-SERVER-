@@ -110,8 +110,8 @@ void send_404(SOCKET client_fd, const char *path) {
 }
 
 /*
- * send_400 — same, just SOCKET type instead of int
- *  */
+  send_400 — same, just SOCKET type instead of int
+   */
  
 /*sends HTTP 400 Bad Request response with headers and simple HTML body
  *send_400()-called when HTTP Request is invalid
