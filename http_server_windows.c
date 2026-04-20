@@ -1,6 +1,6 @@
 /*
  
- * http_server_windows.c — Mini HTTP Server (Windows Version)
+v * http_server_windows.c — Mini HTTP Server (Windows Version)
  * Compile : gcc http_server_windows.c -o http_server_windows.exe -lws2_32
  * Run     : http_server_windows.exe
  * Test    : http://localhost:8080 this opens our homepage running on port 8080
@@ -62,7 +62,7 @@ const char *get_mime_type(const char *filename) {
 }
 
 /* 
-  parse_request_path — same as Linux version, no changes needed
+  parse_request_path 
 */
 int parse_request_path(const char *request, char *method, char *path) {
     //extracts the HTTP method (GET) and requested path (/index.html) from the request string.
@@ -77,11 +77,12 @@ int parse_request_path(const char *request, char *method, char *path) {
 }
 /* 
  Sends a 404 Not Found response to the browser when file is missing.
+  *Creates-response buffer-store html reply
   */
 void send_404(SOCKET client_fd, const char *path) {
     /*
      * SOCKET is a typedef in winsock2.h
-     * On Linux we used int; on Windows we use SOCKET
+     
      */
     char body[512]; // stores HTML response
     snprintf(body, sizeof(body),
@@ -91,18 +92,11 @@ void send_404(SOCKET client_fd, const char *path) {
         "<p>The file <code>%s</code> could not be found.</p>"
         "<hr><small>mini_http_server / C (Windows)</small>"
         "</body></html>",
-        path); // In %S
-     
-    /*
-    *This section builds and send a 404 Not Found HTTP response.
-    *Creates-response buffer-store html reply
-    *-Uses snprintf()-format HTTP response
-             Status line: HTTP/1.0 404 Not Found
-             content type,length
-    */
+        path); 
     char response[1024];
     int  body_len = strlen(body);
-    snprintf(response, sizeof(response),
+    snprintf(response, sizeof(response),   /*Uses snprintf()-format HTTP respons Status line: HTTP/1.0 404 Not Found
+                                              content type,length*/
         "HTTP/1.0 404 Not Found\r\n"
         "Content-Type: text/html\r\n"
         "Content-Length: %d\r\n"
@@ -115,9 +109,9 @@ void send_404(SOCKET client_fd, const char *path) {
     printf("  [Response] 404 Not Found - %s\n", path);  // logs the 404 error on server console for debugging
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
+/*
  * send_400 — same, just SOCKET type instead of int
- * ═══════════════════════════════════════════════════════════════════════════ */
+ *  */
  
 /*sends HTTP 400 Bad Request response with headers and simple HTML body
  *send_400()-called when HTTP Request is invalid
