@@ -2,7 +2,6 @@
  
  * http_server_windows.c — Mini HTTP Server (Windows Version)
  * Compile : gcc http_server_windows.c -o http_server_windows.exe -lws2_32
-              (the -lws2_32 flag links the Windows socket lib)
  * Run     : http_server_windows.exe
  * Test    : http://localhost:8080 this opens our homepage running on port 8080
  */
@@ -136,12 +135,6 @@ void send_400(SOCKET client_fd) {                     //sends a 400 Bad request 
     send(client_fd, response, strlen(response), 0);         //sends response to client via socket
     printf("  [Response] 400 Bad Request\n");               //logs output
 }
-
-/* ═══════════════════════════════════════════════════════════════════════════
- * serve_file — same logic; only SOCKET type and closesocket() differ
- * ═══════════════════════════════════════════════════════════════════════════ */
-
-
 /* 
     Sends requested file to browser
     This section ensures only valid ,safe and existing files are processed
@@ -152,18 +145,11 @@ void serve_file(SOCKET client_fd, const char *path) {
     const char *local_path = path + 1;                    //removes leading '/' from the path to get actual file name
     printf("  [File]     Serving: %s\n", local_path);     //prints the file serve
 
-    /* Check if file exists
-       if not found-send 404 response and exit    
-    */
     struct stat file_info;                                //stores file detail(size,existence)
     if (stat(local_path, &file_info) != 0) {              //check if file exists
         send_404(client_fd, path);                        //if not
         return;
     }
-
-    /* Open file in binary mode 
-       if file opening fails send 404 response
-    */
     FILE *fp = fopen(local_path, "rb");                  //opens file in binary mode
     if (fp == NULL) {                                    //if file cannot open
         send_404(client_fd, path);
@@ -171,21 +157,13 @@ void serve_file(SOCKET client_fd, const char *path) {
     }
 
     long file_size = file_info.st_size;                  //get file size
-    
-    /* Check if file exceeds MAX_FILE_SIZE
-       if too large- close file and send 404
-    */
-    if (file_size > MAX_FILE_SIZE) {                     //prevents very large file(>10MB)
+    if (file_size > MAX_FILE_SIZE) {                     //prevents very large file(>10MB) 
         fclose(fp);                                      //file closes
         send_404(client_fd, path);
         return;
     }
-
-    /* Allocate memory using malloc() to store file content
-       if allocation fails-closes file and send 404
-    */
     char *file_buf = (char *)malloc(file_size);          //allocate memory to store file
-    if (file_buf == NULL) {                              //if memory allocation fail
+    if (file_buf == NULL) {                              //if memory allocation fail close file and send 404
         fclose(fp);
         send_404(client_fd, path);
         return;
